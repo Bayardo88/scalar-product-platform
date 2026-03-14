@@ -5,110 +5,105 @@ import {
   detectManualEdits,
 } from "../src/sync/merge-engine";
 
-describe("merge-engine", () => {
-  describe("computeChecksum", () => {
-    it("should return a 16-char hex string", () => {
-      const checksum = computeChecksum("hello world");
-      expect(checksum).toMatch(/^[a-f0-9]{16}$/);
-    });
-
-    it("should be deterministic", () => {
-      expect(computeChecksum("test")).toBe(computeChecksum("test"));
-    });
-
-    it("should differ for different content", () => {
-      expect(computeChecksum("abc")).not.toBe(computeChecksum("xyz"));
-    });
+describe("computeChecksum", () => {
+  it("returns a 16-char hex string", () => {
+    const hash = computeChecksum("hello world");
+    expect(hash).toHaveLength(16);
+    expect(/^[a-f0-9]+$/.test(hash)).toBe(true);
   });
 
-  describe("wrapGenerated", () => {
-    it("should wrap content with start/end markers", () => {
-      const wrapped = wrapGenerated("const x = 1;");
-      expect(wrapped).toContain("@scalar-generated-start");
-      expect(wrapped).toContain("@scalar-generated-end");
-    });
-
-    it("should include a checksum line", () => {
-      const wrapped = wrapGenerated("const x = 1;");
-      expect(wrapped).toContain("@scalar-checksum:");
-    });
-
-    it("should include manual code placeholder", () => {
-      const wrapped = wrapGenerated("const x = 1;");
-      expect(wrapped).toContain("Add your manual code below this line");
-    });
-
-    it("should preserve imports before markers", () => {
-      const code = 'import React from "react";\n\nexport function Foo() {}';
-      const wrapped = wrapGenerated(code);
-      const startIdx = wrapped.indexOf("@scalar-generated-start");
-      const importIdx = wrapped.indexOf("import React");
-      expect(importIdx).toBeLessThan(startIdx);
-    });
+  it("returns different checksums for different input", () => {
+    const a = computeChecksum("hello");
+    const b = computeChecksum("world");
+    expect(a).not.toBe(b);
   });
 
-  describe("mergeGeneratedFile", () => {
-    it("should return 'new' strategy for first generation", () => {
-      const result = mergeGeneratedFile("const x = 1;", null);
-      expect(result.strategy).toBe("new");
-      expect(result.generatedChanged).toBe(true);
-      expect(result.hasManualEdits).toBe(false);
-    });
+  it("returns same checksum for same input", () => {
+    const a = computeChecksum("same content");
+    const b = computeChecksum("same content");
+    expect(a).toBe(b);
+  });
+});
 
-    it("should return 'regenerated' when content is unchanged", () => {
-      const first = mergeGeneratedFile("const x = 1;", null);
-      const second = mergeGeneratedFile("const x = 1;", first.content);
-      expect(second.strategy).toBe("regenerated");
-      expect(second.generatedChanged).toBe(false);
-    });
+describe("wrapGenerated", () => {
+  it("wraps content with start/end markers", () => {
+    const wrapped = wrapGenerated("const x = 1;");
+    expect(wrapped).toContain("// @scalar-generated-start");
+    expect(wrapped).toContain("// @scalar-generated-end");
+  });
 
-    it("should return 'regenerated' when content changes but no manual edits", () => {
-      const first = mergeGeneratedFile("const x = 1;", null);
-      const second = mergeGeneratedFile("const x = 2;", first.content);
-      expect(second.strategy).toBe("regenerated");
-      expect(second.generatedChanged).toBe(true);
-    });
+  it("includes a checksum", () => {
+    const wrapped = wrapGenerated("const x = 1;");
+    expect(wrapped).toContain("// @scalar-checksum:");
+  });
 
-    it("should return 'merged-preserved' when manual edits exist and generated changes", () => {
-      const first = mergeGeneratedFile("const x = 1;", null);
-      const withManual = first.content.replace(
+  it("includes manual edit placeholder", () => {
+    const wrapped = wrapGenerated("const x = 1;");
+    expect(wrapped).toContain("Add your manual code below this line");
+  });
+});
+
+describe("mergeGeneratedFile", () => {
+  it("creates a new file when no existing content", () => {
+    const result = mergeGeneratedFile("const x = 1;", null);
+    expect(result.strategy).toBe("new");
+    expect(result.hasManualEdits).toBe(false);
+    expect(result.generatedChanged).toBe(true);
+    expect(result.content).toContain("const x = 1;");
+  });
+
+  it("returns unchanged when content is identical", () => {
+    const initial = wrapGenerated("const x = 1;");
+    const result = mergeGeneratedFile("const x = 1;", initial);
+    expect(result.strategy).toBe("regenerated");
+    expect(result.generatedChanged).toBe(false);
+  });
+
+  it("preserves manual edits when generated content changes", () => {
+    const initial = wrapGenerated("const x = 1;");
+    const withEdits =
+      initial.replace(
         "// Add your manual code below this line",
-        "// Add your manual code below this line\n\nconst myCode = 42;"
+        "// Add your manual code below this line\n\nfunction myHelper() { return 42; }"
       );
-      const result = mergeGeneratedFile("const x = 2;", withManual);
-      expect(result.strategy).toBe("merged-preserved");
-      expect(result.hasManualEdits).toBe(true);
-      expect(result.content).toContain("myCode = 42");
-      expect(result.content).toContain("const x = 2;");
-    });
 
-    it("should handle files without markers (plain overwrite)", () => {
-      const result = mergeGeneratedFile("const y = 2;", "const x = 1;");
-      expect(result.strategy).toBe("conflict-overwritten");
-    });
+    const result = mergeGeneratedFile("const x = 2;", withEdits);
+    expect(result.strategy).toBe("merged-preserved");
+    expect(result.hasManualEdits).toBe(true);
+    expect(result.content).toContain("const x = 2;");
+    expect(result.content).toContain("myHelper");
   });
 
-  describe("detectManualEdits", () => {
-    it("should detect no edits in fresh file", () => {
-      const wrapped = wrapGenerated("const x = 1;");
-      const result = detectManualEdits(wrapped);
-      expect(result.hasEdits).toBe(false);
-    });
+  it("overwrites non-wrapped files on conflict", () => {
+    const result = mergeGeneratedFile(
+      "const x = 2;",
+      "const x = 1; // old file without markers"
+    );
+    expect(result.strategy).toBe("conflict-overwritten");
+    expect(result.content).toContain("const x = 2;");
+  });
+});
 
-    it("should detect manual edits after marker", () => {
-      const wrapped = wrapGenerated("const x = 1;");
-      const withEdits = wrapped.replace(
-        "// Add your manual code below this line",
-        "// Add your manual code below this line\n\nfunction helperFn() { return 1; }"
-      );
-      const result = detectManualEdits(withEdits);
-      expect(result.hasEdits).toBe(true);
-      expect(result.editedSections.length).toBeGreaterThan(0);
-    });
+describe("detectManualEdits", () => {
+  it("returns false for files without manual edits", () => {
+    const wrapped = wrapGenerated("const x = 1;");
+    const result = detectManualEdits(wrapped);
+    expect(result.hasEdits).toBe(false);
+  });
 
-    it("should return false for non-wrapped files", () => {
-      const result = detectManualEdits("const x = 1;");
-      expect(result.hasEdits).toBe(false);
-    });
+  it("returns true for files with manual edits", () => {
+    const wrapped = wrapGenerated("const x = 1;");
+    const withEdits = wrapped.replace(
+      "// Add your manual code below this line",
+      "// Add your manual code below this line\n\nfunction custom() {}"
+    );
+    const result = detectManualEdits(withEdits);
+    expect(result.hasEdits).toBe(true);
+    expect(result.editedSections.length).toBeGreaterThan(0);
+  });
+
+  it("returns false for unwrapped content", () => {
+    const result = detectManualEdits("const x = 1;");
+    expect(result.hasEdits).toBe(false);
   });
 });

@@ -24,6 +24,8 @@ export interface ASTDataBinding {
   bind?: string;
   itemKey?: string;
   fields?: Record<string, string>;
+  entity?: string;
+  field?: string;
 }
 
 export interface ASTNode {

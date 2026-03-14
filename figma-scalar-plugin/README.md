@@ -1,63 +1,88 @@
 # figma-scalar-plugin
 
-A Figma plugin that generates low-fi wireframe layouts from natural language prompts, powered by `scalar-product-generator-core`.
+A Figma plugin that generates low-fi wireframe layouts from natural language prompts, applies hi-fi DS/Scalar styles, exports Design AST JSON, and syncs directly to React codebases via a local dev bridge.
 
-## How It Works
+## Architecture
 
-1. User enters a product prompt in the plugin UI
-2. Plugin parses the prompt into a SaaS App Brief via the core package
-3. Brief is converted to a Design AST
-4. AST is rendered as Figma frames/text on the current page
-5. Each generated node stores metadata (astId, role, screenId, dataBind) as pluginData
+```
+code.ts (thin entrypoint)
+  → src/controller/plugin-controller.ts (message dispatch)
+    → src/services/generate-service.ts     (prompt → brief → AST → render)
+    → src/services/export-service.ts       (Figma → Design AST JSON)
+    → src/services/hifi-upgrade-service.ts (low-fi → hi-fi style swap)
+    → src/services/sync-service.ts         (export + send to dev bridge)
+```
+
+### Layers
+
+| Layer | Path | Responsibility |
+|-------|------|----------------|
+| Entrypoint | `code.ts` | Shows UI, delegates to controller |
+| Controller | `src/controller/` | Receives UI messages, dispatches to services |
+| Services | `src/services/` | Business logic (generate, export, hifi, sync) |
+| Messaging | `src/messaging/` | Typed message contracts (UI ↔ plugin) |
+| State | `src/state/` | Plugin state management |
+| Renderer | `src/renderer/` | AST → Figma node rendering |
+| Export | `src/export/` | Figma → Design AST extraction |
+| Sync | `src/sync/` | Dev bridge client + change detection |
 
 ## Setup
 
 ```bash
 # From the monorepo root
 npm install
-npm run build -w scalar-product-generator-core
-npm run build -w figma-scalar-plugin
+npm run build:core
+npm run build:plugin
 ```
 
 ## Development
 
-1. Build the plugin: `npm run build -w figma-scalar-plugin`
+1. Build the plugin: `npm run build:plugin` (from root)
 2. In Figma Desktop → Plugins → Development → Import plugin from manifest
 3. Point to `figma-scalar-plugin/manifest.json`
 4. Run the plugin from the Plugins menu
 
-For watch mode during development:
-```bash
-npm run watch -w figma-scalar-plugin
-```
+For watch mode: `npm run dev:plugin` (from root)
 
-## Key Files
+## Direct Sync to React
 
-| File | Purpose |
-|------|---------|
-| `manifest.json` | Figma plugin configuration |
-| `ui.html` | Plugin UI panel (prompt input) |
-| `code.ts` | Plugin entry point, message handling |
-| `renderer/render-ast.ts` | Top-level AST → Figma renderer |
-| `renderer/render-node.ts` | Individual node renderer |
-| `renderer/layout.ts` | AST layout → Figma Auto Layout translation |
-| `renderer/metadata.ts` | PluginData attachment (astId, role, etc.) |
-| `renderer/role-map.ts` | Human-readable labels for roles |
-| `renderer/text.ts` | Text node creation and font loading |
+1. Start the dev bridge: `npm run dev:bridge` (from root)
+2. In the plugin UI, click **Sync to React**
+3. The plugin exports the current design, sends it to `localhost:4311/sync`, and the bridge generates React scaffolds
 
-## Already Implemented
+The plugin also supports **Validate Sync** to check the design export for issues before syncing.
 
-- Prompt input UI with status feedback
-- Full AST rendering pipeline
-- Layout translation (stack, grid, padding, gap)
-- PluginData metadata on every node
-- Role-based fills (sidebar dark, buttons colored, etc.)
-- Recursive child rendering
+## Message Types
 
-## TODO
+| Message | Direction | Description |
+|---------|-----------|-------------|
+| `generate` | UI → Plugin | Parse prompt and render layout |
+| `export` | UI → Plugin | Export Design AST JSON |
+| `hifi-swap` | UI → Plugin | Apply DS/Scalar hi-fi styles |
+| `sync-react` | UI → Plugin | Export and sync to React via dev bridge |
+| `validate-sync` | UI → Plugin | Export and validate via dev bridge |
 
-- [ ] Design export engine (Figma → design export JSON)
-- [ ] Hi-fi DS/Scalar component swap
-- [ ] State variant rendering (loading, empty, error)
-- [ ] Undo/redo support
-- [ ] Bundler setup (esbuild/webpack) for production builds
+## PluginData Keys
+
+Every generated Figma node stores metadata via `pluginData`:
+
+| Key | Description |
+|-----|-------------|
+| `astId` | Unique AST node identifier |
+| `role` | Semantic role (e.g. `button.primaryAction`) |
+| `screenId` | Parent screen identifier |
+| `dataBind` | Data binding expression |
+| `entity` | Entity name for data binding |
+| `field` | Field name for data binding |
+| `state` | UI state variant |
+| `componentHint` | DS/Scalar component name hint |
+| `codeComponentHint` | Full import path hint for code generation |
+
+## Features
+
+- Natural language prompt → low-fi wireframe generation
+- Hi-fi DS/Scalar style upgrade with component hints
+- Design AST export with diagnostics
+- Direct sync to React via local dev bridge
+- Change detection to skip identical re-syncs
+- Typed message contracts between UI and plugin sandbox

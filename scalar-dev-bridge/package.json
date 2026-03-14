@@ -1,0 +1,28 @@
+{
+  "name": "scalar-dev-bridge",
+  "version": "0.1.0",
+  "description": "Local dev server bridging the Figma Scalar plugin to React codebases via scalar-design-sync.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "scalar-design-sync": "*",
+    "scalar-product-generator-core": "*",
+    "express": "^4.21.0",
+    "fs-extra": "^11.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "ts-node": "^10.9.2",
+    "@types/node": "^22.0.0",
+    "@types/express": "^5.0.0",
+    "@types/fs-extra": "^11.0.4",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.0",
+    "@types/jest": "^29.5.0"
+  }
+}

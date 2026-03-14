@@ -5,6 +5,8 @@ import { pullCommand } from "./commands/pull";
 import { validateCommand } from "./commands/validate";
 import { reportCommand } from "./commands/report";
 import { diffCommand } from "./commands/diff";
+import { watchCommand } from "./commands/watch";
+import { codeDiffCommand } from "./commands/code-diff";
 
 const program = new Command();
 
@@ -19,7 +21,7 @@ program
   .requiredOption("--design <path>", "Path to design export JSON")
   .requiredOption("--out <path>", "Output directory for generated files")
   .option("--registry <path>", "Path to component registry JSON")
-  .action(pullCommand);
+  .action(async (opts) => { await pullCommand(opts); });
 
 program
   .command("validate")
@@ -43,5 +45,21 @@ program
   .requiredOption("--new <path>", "Path to the new design export JSON")
   .option("--out <path>", "Output directory for diff report")
   .action(diffCommand);
+
+program
+  .command("watch")
+  .description("Watch a design export file and rerun pull when it changes")
+  .requiredOption("--design <path>", "Path to design export JSON to watch")
+  .requiredOption("--out <path>", "Output directory for generated files")
+  .option("--registry <path>", "Path to component registry JSON")
+  .action(watchCommand);
+
+program
+  .command("code-diff")
+  .description("Compare generated code against a design export to find drift")
+  .requiredOption("--design <path>", "Path to design export JSON")
+  .requiredOption("--out <path>", "Output directory containing generated code")
+  .option("--registry <path>", "Path to component registry JSON")
+  .action(codeDiffCommand);
 
 program.parse();

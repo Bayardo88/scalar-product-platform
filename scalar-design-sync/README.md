@@ -1,14 +1,14 @@
 # scalar-design-sync
 
-CLI tool that reads Figma design export JSON files and generates React scaffold code, including screens, types, and routes.
+CLI tool that reads Figma design export JSON files and generates React scaffold code, including screens, components, types, and routes. Supports merge-safe regeneration that preserves manual edits.
 
 ## Setup
 
 ```bash
 # From the monorepo root
 npm install
-npm run build -w scalar-product-generator-core
-npm run build -w scalar-design-sync
+npm run build:core
+npm run build:sync
 ```
 
 ## Commands
@@ -24,8 +24,15 @@ node dist/index.js pull \
 
 Generates:
 - `src/screens/generated/*.generated.tsx` — React screen components
+- `src/components/generated/*.generated.tsx` — Form, table, card grid components
 - `src/types/generated/models.generated.ts` — TypeScript model interfaces
-- `src/routes/generated.tsx` — Route configuration
+- `src/routes/generated.tsx` — Route configuration with lazy loading
+
+Returns a machine-readable `PullReport` with:
+- `generatedFiles` — list of files written
+- `updatedScreens` — screen names that were regenerated
+- `unmappedRoles` — roles not found in the registry
+- `warnings` — human-readable warning messages
 
 ### `validate` — Validate design export
 
@@ -51,24 +58,32 @@ node dist/index.js report \
   --out <optional-output-directory>
 ```
 
-Reports:
-- Total screens, routes, nodes
-- Unique roles and usage counts
-- Mapped vs unmapped roles
-- Coverage percentage
+### `diff` — Compare two design exports
 
-## Key Files
+```bash
+node dist/index.js diff \
+  --old <path-to-old-export.json> \
+  --new <path-to-new-export.json> \
+  --out <optional-output-directory>
+```
 
-| File | Purpose |
-|------|---------|
-| `src/index.ts` | CLI entry point (commander) |
-| `src/commands/pull.ts` | Pull command implementation |
-| `src/commands/validate.ts` | Validate command implementation |
-| `src/commands/report.ts` | Report command implementation |
-| `src/generators/screens.ts` | React screen component generator |
-| `src/generators/types.ts` | TypeScript model/type generator |
-| `src/generators/routes.ts` | Route configuration generator |
-| `registry/registry.scalar.react.json` | Role → React component mapping |
+### `watch` — Watch and auto-regenerate
+
+```bash
+node dist/index.js watch \
+  --design <path-to-design.export.json> \
+  --out <output-directory> \
+  --registry <optional-path-to-registry.json>
+```
+
+Monitors the design export file and re-runs `pull` whenever it changes. Useful with the dev bridge for live regeneration.
+
+## Merge Engine
+
+Generated files use `@scalar-generated-start/end` markers with SHA-256 checksums. The merge engine:
+- Preserves manual code below the `@scalar-generated-end` marker
+- Detects unchanged generated blocks and skips them
+- Reports merge strategy: `new`, `regenerated`, `merged-preserved`, `conflict-overwritten`
 
 ## Registry
 
@@ -79,18 +94,11 @@ The registry maps semantic AST roles to DS/Scalar React components:
 { "role": "table.data", "component": "DataTable", "importPath": "@scalar/ui/DataTable" }
 ```
 
-## Already Implemented
+## Features
 
-- Full `pull` command with screen, type, and route generation
-- `validate` command with structural and semantic checks
-- `report` command with coverage metrics
-- Registry-based component mapping
-- PascalCase naming and `.generated.tsx` suffix convention
-
-## TODO
-
-- [ ] Component-level code generation (not just screen shells)
-- [ ] Support for custom templates/overrides
-- [ ] Watch mode for live re-generation
-- [ ] Diff mode to show changes between exports
-- [ ] Integration with `@scalar/ui` component library
+- Full screen, component, type, and route generation
+- Merge-safe regeneration preserving manual edits
+- Coverage reports and validation
+- Design diff between exports
+- Watch mode for live regeneration
+- Machine-readable pull report for programmatic use (dev bridge integration)

@@ -36,6 +36,10 @@
     .btn-accent:hover { background: #0a7a70; }
     .btn-warn { background: #f59e0b; color: white; }
     .btn-warn:hover { background: #d97706; }
+    .btn-sync { background: #2563eb; color: white; }
+    .btn-sync:hover { background: #1d4ed8; }
+    .btn-validate { background: #7c3aed; color: white; }
+    .btn-validate:hover { background: #6d28d9; }
     .btn-small { flex: 0 0 auto; padding: 8px 10px; }
     #status { margin-top: 8px; font-size: 12px; color: #666; min-height: 16px; }
     .divider { border: none; border-top: 1px solid #e5e5e5; margin: 10px 0; }
@@ -57,11 +61,14 @@
       display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; color: #666;
     }
     .toggle-row input[type="checkbox"] { margin: 0; }
+    .sync-result { display: none; margin-top: 6px; padding: 8px; border-radius: 6px; font-size: 11px; line-height: 1.4; }
+    .sync-result.ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .sync-result.fail { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
   </style>
 </head>
 <body>
   <h2>Scalar Product Generator</h2>
-  <p class="subtitle">Generate, export, and upgrade design layouts</p>
+  <p class="subtitle">Generate, export, upgrade, and sync design layouts</p>
 
   <div class="section">
     <label>Product Prompt</label>
@@ -100,10 +107,22 @@
     </div>
   </div>
 
+  <hr class="divider" />
+
+  <div class="section">
+    <label>Sync to React (Dev Bridge)</label>
+    <div style="font-size:11px;color:#888;margin-bottom:4px;">Exports design and syncs to your local React project via localhost:4311</div>
+    <div class="actions">
+      <button id="sync-react" class="btn-sync">Sync to React</button>
+      <button id="validate-sync" class="btn-validate">Validate Sync</button>
+    </div>
+    <div class="sync-result" id="sync-result"></div>
+  </div>
+
   <div id="status"></div>
 
   <div class="info">
-    <strong>Workflow:</strong> Generate low-fi &#8594; refine in Figma &#8594; apply hi-fi upgrade &#8594; export Design AST JSON &#8594; use <code>scalar-design-sync pull</code> to scaffold React code.
+    <strong>Workflow:</strong> Generate low-fi &#8594; refine in Figma &#8594; apply hi-fi upgrade &#8594; Sync to React (or export JSON manually) &#8594; React scaffold generated.
   </div>
 
   <script>
@@ -118,12 +137,17 @@
     const exportOutputEl = document.getElementById("export-output");
     const exportJsonEl = document.getElementById("export-json");
     const copyJsonEl = document.getElementById("copy-json");
+    const syncReactEl = document.getElementById("sync-react");
+    const validateSyncEl = document.getElementById("validate-sync");
+    const syncResultEl = document.getElementById("sync-result");
 
     function setStatus(msg) { statusEl.textContent = msg; }
     function disableAll(v) {
       generateEl.disabled = v;
       hifiSwapEl.disabled = v;
       exportEl.disabled = v;
+      syncReactEl.disabled = v;
+      validateSyncEl.disabled = v;
     }
 
     generateEl.onclick = () => {
@@ -132,6 +156,7 @@
       setStatus("Generating...");
       disableAll(true);
       exportOutputEl.style.display = "none";
+      syncResultEl.style.display = "none";
       parent.postMessage({ pluginMessage: { type: "generate", prompt } }, "*");
     };
 
@@ -139,6 +164,7 @@
       promptEl.value = "";
       setStatus("");
       exportOutputEl.style.display = "none";
+      syncResultEl.style.display = "none";
     };
 
     hifiSwapEl.onclick = () => {
@@ -155,6 +181,22 @@
       parent.postMessage({ pluginMessage: { type: "export", appName } }, "*");
     };
 
+    syncReactEl.onclick = () => {
+      setStatus("Syncing to React...");
+      disableAll(true);
+      syncResultEl.style.display = "none";
+      const appName = appNameEl.value.trim() || undefined;
+      parent.postMessage({ pluginMessage: { type: "sync-react", appName } }, "*");
+    };
+
+    validateSyncEl.onclick = () => {
+      setStatus("Validating sync...");
+      disableAll(true);
+      syncResultEl.style.display = "none";
+      const appName = appNameEl.value.trim() || undefined;
+      parent.postMessage({ pluginMessage: { type: "validate-sync", appName } }, "*");
+    };
+
     copyJsonEl.onclick = () => {
       exportJsonEl.select();
       document.execCommand("copy");
@@ -162,15 +204,51 @@
       setTimeout(() => { copyJsonEl.textContent = "Copy"; }, 1500);
     };
 
+    function showSyncResult(ok, message, details) {
+      syncResultEl.className = "sync-result " + (ok ? "ok" : "fail");
+      let html = message;
+      if (details && details.length > 0) {
+        html += "<br/><small>" + details.join("<br/>") + "</small>";
+      }
+      syncResultEl.innerHTML = html;
+      syncResultEl.style.display = "block";
+    }
+
     window.onmessage = (event) => {
       const msg = event.data.pluginMessage;
       if (!msg) return;
       disableAll(false);
+
       if (msg.type === "status") setStatus(msg.message);
+
       if (msg.type === "exported") {
         setStatus(msg.message);
         exportJsonEl.value = msg.ast;
         exportOutputEl.style.display = "block";
+      }
+
+      if (msg.type === "sync-result") {
+        setStatus(msg.message);
+        const details = [];
+        if (msg.generatedFiles && msg.generatedFiles.length > 0) {
+          details.push("Files: " + msg.generatedFiles.join(", "));
+        }
+        if (msg.warnings && msg.warnings.length > 0) {
+          msg.warnings.forEach(function(w) { details.push("⚠ " + w); });
+        }
+        showSyncResult(msg.ok, msg.message, details);
+      }
+
+      if (msg.type === "validate-result") {
+        setStatus(msg.message);
+        const details = [];
+        if (msg.errors && msg.errors.length > 0) {
+          msg.errors.forEach(function(e) { details.push("✗ " + e); });
+        }
+        if (msg.warnings && msg.warnings.length > 0) {
+          msg.warnings.forEach(function(w) { details.push("⚠ " + w); });
+        }
+        showSyncResult(msg.ok, msg.message, details);
       }
     };
   </script>

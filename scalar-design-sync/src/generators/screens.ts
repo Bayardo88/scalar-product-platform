@@ -1,4 +1,12 @@
 import { DesignAST, ASTNode } from "scalar-product-generator-core";
+import {
+  collectStateVariants,
+  generateLoadingState,
+  generateFetchEffect,
+  generateLoadingWrapper,
+  generateDataServiceStubs,
+  StateVariantConfig,
+} from "./state-variants";
 
 export interface RegistryEntry {
   role: string;
@@ -31,7 +39,17 @@ function findNodeById(nodes: ASTNode[], id: string): ASTNode | undefined {
   return undefined;
 }
 
-function buildPropsString(node: ASTNode, registry: RegistryEntry[]): string {
+const DATA_DRIVEN_ROLES = new Set([
+  "table.data", "collection.cards", "feed.activity",
+  "chart.analytics", "chart.bar", "chart.line", "chart.pie",
+  "panel.details",
+]);
+
+function buildPropsString(
+  node: ASTNode,
+  registry: RegistryEntry[],
+  stateVariants: StateVariantConfig[]
+): string {
   const parts: string[] = [];
   const className = `scalar-${node.role.replace(/\./g, "-")}`;
   parts.push(`className="${className}"`);
@@ -54,6 +72,9 @@ function buildPropsString(node: ASTNode, registry: RegistryEntry[]): string {
     parts.push(`data={${toCamelCase(node.data.bind)}}`);
     if (node.data.itemKey) {
       parts.push(`itemKey="${node.data.itemKey}"`);
+    }
+    if (node.data.entity) {
+      parts.push(`entity="${node.data.entity}"`);
     }
   }
 
@@ -78,15 +99,23 @@ function buildPropsString(node: ASTNode, registry: RegistryEntry[]): string {
   return parts.join(" ");
 }
 
-function renderNodeToJSX(node: ASTNode, registry: RegistryEntry[], indent: number): string {
+function renderNodeToJSX(
+  node: ASTNode,
+  registry: RegistryEntry[],
+  indent: number,
+  stateVariants: StateVariantConfig[]
+): string {
   const pad = "  ".repeat(indent);
   const entry = registry.find((r) => r.role === node.role);
   const tag = entry ? entry.component : "div";
-  const propsStr = buildPropsString(node, registry);
+  const propsStr = buildPropsString(node, registry, stateVariants);
 
   if (node.type === "Text") {
     if (node.role === "text.heading") {
       return `${pad}<h2 ${propsStr}>${node.name}</h2>`;
+    }
+    if (node.role === "text.label") {
+      return `${pad}<label ${propsStr}>${node.name}</label>`;
     }
     return `${pad}<span ${propsStr}>${node.name}</span>`;
   }
@@ -99,10 +128,19 @@ function renderNodeToJSX(node: ASTNode, registry: RegistryEntry[], indent: numbe
   }
 
   const childrenJSX = node.children
-    .map((child) => renderNodeToJSX(child, registry, indent + 1))
+    .map((child) => renderNodeToJSX(child, registry, indent + 1, stateVariants))
     .join("\n");
 
-  return `${pad}<${tag} ${propsStr}>\n${childrenJSX}\n${pad}</${tag}>`;
+  const innerJSX = `${pad}<${tag} ${propsStr}>\n${childrenJSX}\n${pad}</${tag}>`;
+
+  if (DATA_DRIVEN_ROLES.has(node.role) && node.data?.bind) {
+    const variant = stateVariants.find((v) => v.bindingName === node.data!.bind);
+    if (variant) {
+      return generateLoadingWrapper(variant.varName, innerJSX, indent);
+    }
+  }
+
+  return innerJSX;
 }
 
 function collectUsedComponents(node: ASTNode, registry: RegistryEntry[], out: Set<string>): void {
@@ -166,7 +204,13 @@ export function generateScreenFile(
   const interactions = { hasNavigate: false, hasSubmit: false, overlays: new Set<string>() };
   collectInteractions(rootNode, interactions);
 
-  const imports: string[] = [`import React, { useState, useCallback } from "react";`];
+  const stateVariants = collectStateVariants(rootNode);
+  const hasStateVariants = stateVariants.length > 0;
+
+  const imports: string[] = [];
+  const reactImports = ["useState", "useCallback"];
+  if (hasStateVariants) reactImports.push("useEffect");
+  imports.push(`import React, { ${reactImports.join(", ")} } from "react";`);
 
   if (interactions.hasNavigate) {
     imports.push(`import { useNavigate } from "react-router-dom";`);
@@ -198,6 +242,10 @@ export function generateScreenFile(
     hookLines.push(`  const [${varName}, set${toPascalCase(varName)}] = useState<any[]>([]);`);
   }
 
+  for (const variant of stateVariants) {
+    hookLines.push(generateLoadingState(variant.varName));
+  }
+
   for (const overlayId of interactions.overlays) {
     const varName = `show${toPascalCase(overlayId)}`;
     hookLines.push(`  const [${varName}, set${toPascalCase(overlayId)}] = useState(false);`);
@@ -210,11 +258,21 @@ export function generateScreenFile(
     hookLines.push(`  }, []);`);
   }
 
-  const jsx = renderNodeToJSX(rootNode, registry, 2);
+  for (const variant of stateVariants) {
+    hookLines.push(``);
+    hookLines.push(generateFetchEffect(variant.varName, variant.entityName));
+  }
+
+  const jsx = renderNodeToJSX(rootNode, registry, 2, stateVariants);
   const hooksBlock = hookLines.length > 0 ? `\n${hookLines.join("\n")}\n` : "";
 
-  const content = `${imports.join("\n")}
+  let serviceStubs = "";
+  if (hasStateVariants) {
+    serviceStubs = `\n${generateDataServiceStubs(stateVariants)}`;
+  }
 
+  const content = `${imports.join("\n")}
+${serviceStubs}
 export default function ${componentName}() {${hooksBlock}
   return (
 ${jsx}

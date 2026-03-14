@@ -5,6 +5,21 @@
     "scalar-product-generator-core",
     "figma-scalar-plugin",
     "scalar-design-sync",
-    "scalar-ui"
-  ]
+    "scalar-ui",
+    "scalar-dev-bridge"
+  ],
+  "scripts": {
+    "build:core": "npm run build -w scalar-product-generator-core",
+    "build:sync": "npm run build -w scalar-design-sync",
+    "build:plugin": "npm run build -w figma-scalar-plugin",
+    "build:bridge": "npm run build -w scalar-dev-bridge",
+    "build:ui": "npm run build -w scalar-ui",
+    "build:all": "npm run build:core && npm run build:sync && npm run build:bridge && npm run build:plugin",
+    "dev:bridge": "npm run dev -w scalar-dev-bridge",
+    "dev:plugin": "npm run watch -w figma-scalar-plugin",
+    "test": "npm test -w scalar-product-generator-core && npm test -w scalar-design-sync && npm test -w scalar-dev-bridge",
+    "test:core": "npm test -w scalar-product-generator-core",
+    "test:sync": "npm test -w scalar-design-sync",
+    "test:bridge": "npm test -w scalar-dev-bridge"
+  }
 }

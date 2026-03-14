@@ -1,24 +1,28 @@
 # scalar-product-platform
 
-A unified monorepo for generating, designing, and syncing SaaS product scaffolds.
+A unified monorepo for generating, designing, and syncing SaaS product scaffolds — from natural language prompt to deployed React code.
 
 ## Architecture
 
 ```
 Prompt
   → scalar-product-generator-core   (parse prompt → SaaS Brief → Design AST)
-  → figma-scalar-plugin              (render AST as low-fi Figma layouts)
-  → design export JSON               (Figma plugin exports AST back out)
-  → scalar-design-sync               (CLI consumes export → generates React scaffolds)
+  → figma-scalar-plugin              (render AST as Figma layouts)
+  → hi-fi upgrade                    (apply DS/Scalar styles + component hints)
+  → direct sync to React             (plugin → dev bridge → scaffold generation)
+  OR: design export JSON             (manual export → scalar-design-sync CLI)
+  → scalar-design-sync               (generates React screens, types, routes)
 ```
 
 ## Packages
 
 | Package | Purpose |
 |---------|---------|
-| `scalar-product-generator-core` | Shared types, prompt parser, AST generator, pattern registry |
-| `figma-scalar-plugin` | Figma plugin that renders Design AST as low-fi wireframes |
-| `scalar-design-sync` | CLI that reads design exports and generates React scaffold code |
+| `scalar-product-generator-core` | Shared types, prompt parser (GPT-4.1-mini + regex fallback), AST generator, pattern registry |
+| `figma-scalar-plugin` | Figma plugin: generates low-fi wireframes, applies hi-fi styles, exports Design AST, syncs directly to React |
+| `scalar-design-sync` | CLI that reads design exports and generates React scaffold code with merge-safe regeneration |
+| `scalar-dev-bridge` | Local Express server bridging the Figma plugin to scalar-design-sync for direct sync |
+| `scalar-ui` | DS/Scalar React component library (Button, Sidebar, DataTable, Charts, etc.) |
 
 ## Quick Start
 
@@ -26,81 +30,128 @@ Prompt
 # Install all dependencies
 npm install
 
-# Build the core package first (other packages depend on it)
-npm run build -w scalar-product-generator-core
+# Build everything (core → sync → bridge → plugin)
+npm run build:all
 
-# Run the example generator
-npm run example -w scalar-product-generator-core
+# Start the dev bridge (required for direct Figma → React sync)
+npm run dev:bridge
 
-# Build the CLI
-npm run build -w scalar-design-sync
+# In a separate terminal, watch the plugin for development
+npm run dev:plugin
+```
 
-# Test the CLI against the example export
+## Direct Sync Workflow (Figma → React)
+
+1. Start the dev bridge: `npm run dev:bridge`
+2. Open the Figma plugin in Figma Desktop
+3. Generate a layout from a prompt, or open an existing design
+4. Click **Sync to React** in the plugin UI
+5. The plugin exports the design, sends it to `localhost:4311`, and the bridge runs `scalar-design-sync pull` to generate React scaffolds
+
+## CLI Workflow (Manual)
+
+```bash
+# Build core and sync
+npm run build:core
+npm run build:sync
+
+# Generate from a design export file
 node scalar-design-sync/dist/index.js pull \
   --design examples/design.export.json \
   --out ./test-output
 
+# Validate a design export
 node scalar-design-sync/dist/index.js validate \
   --design examples/design.export.json
 
+# Watch for changes and auto-regenerate
+node scalar-design-sync/dist/index.js watch \
+  --design examples/design.export.json \
+  --out ./test-output
+
+# Generate a coverage report
 node scalar-design-sync/dist/index.js report \
   --design examples/design.export.json \
   --out ./test-output
+
+# Diff two design exports
+node scalar-design-sync/dist/index.js diff \
+  --old examples/design.export.old.json \
+  --new examples/design.export.json
 ```
+
+## Root Scripts
+
+| Script | Description |
+|--------|-------------|
+| `build:all` | Build core → sync → bridge → plugin in order |
+| `build:core` | Build scalar-product-generator-core |
+| `build:sync` | Build scalar-design-sync |
+| `build:bridge` | Build scalar-dev-bridge |
+| `build:plugin` | Build figma-scalar-plugin |
+| `dev:bridge` | Start the dev bridge server on localhost:4311 |
+| `dev:plugin` | Watch-mode build for the Figma plugin |
 
 ## Design System
 
 - **Name:** DS/Scalar
 - **Frontend target:** React
-- **Current mode:** Low-fi wireframes
+- **Modes:** Low-fi wireframes → Hi-fi styled layouts
 
 ## Project Structure
 
 ```
 scalar-product-platform/
-├── package.json                          # Root workspace config
-├── .gitignore
+├── package.json                          # Root workspace config + scripts
 ├── examples/
 │   ├── prompt.txt                        # Sample prompt
 │   └── design.export.json                # Sample design export for CLI testing
-├── scalar-product-generator-core/
+├── scalar-product-generator-core/        # Prompt parser + AST generator
+├── figma-scalar-plugin/                  # Figma plugin (generate, export, hifi, sync)
+│   ├── code.ts                           # Thin entrypoint
 │   ├── src/
-│   │   ├── types/brief.ts                # SaaSAppBrief type
-│   │   ├── types/ast.ts                  # DesignAST / ASTNode types
-│   │   ├── patterns/patterns.ts          # Reusable screen patterns
-│   │   ├── parser/prompt-to-brief.ts     # Natural language → brief
-│   │   └── generator/brief-to-ast.ts     # Brief → Design AST
-│   └── examples/generate.ts              # End-to-end example script
-├── figma-scalar-plugin/
-│   ├── manifest.json                     # Figma plugin manifest
-│   ├── ui.html                           # Plugin UI panel
-│   ├── code.ts                           # Plugin entry point
-│   └── renderer/                         # AST-to-Figma renderer
-│       ├── render-ast.ts
-│       ├── render-node.ts
-│       ├── layout.ts
-│       ├── metadata.ts
-│       ├── role-map.ts
-│       └── text.ts
-└── scalar-design-sync/
-    ├── src/
-    │   ├── index.ts                      # CLI entry point
-    │   ├── commands/pull.ts              # Generate React scaffolds
-    │   ├── commands/validate.ts          # Validate design exports
-    │   ├── commands/report.ts            # Coverage report
-    │   └── generators/
-    │       ├── screens.ts                # Screen component generator
-    │       ├── types.ts                  # TypeScript model generator
-    │       └── routes.ts                 # Route config generator
-    └── registry/
-        └── registry.scalar.react.json    # Role → React component mapping
+│   │   ├── controller/                   # Message dispatch
+│   │   ├── services/                     # Generate, export, hifi, sync services
+│   │   ├── messaging/                    # Typed message contracts
+│   │   ├── state/                        # Plugin state management
+│   │   ├── renderer/                     # AST → Figma renderer
+│   │   ├── export/                       # Figma → Design AST exporter
+│   │   └── sync/                         # Dev bridge client + change detection
+│   ├── renderer/                         # Legacy renderer (kept for compatibility)
+│   ├── exporter/                         # Legacy exporter (kept for compatibility)
+│   └── hifi/                             # Hi-fi component registry + swap engine
+├── scalar-design-sync/                   # CLI: design export → React scaffolds
+│   ├── src/commands/                     # pull, validate, report, diff, watch
+│   ├── src/generators/                   # Screen, component, type, route generators
+│   └── registry/                         # Role → React component mapping
+├── scalar-dev-bridge/                    # Local Express server for direct sync
+│   └── src/
+│       ├── routes/                       # /sync, /validate endpoints
+│       └── services/                     # Pull runner, validator, file reporter
+└── scalar-ui/                            # DS/Scalar React component library
 ```
 
-## TODOs for Next Iteration
+## Generated Output Structure
 
-- [ ] Figma export engine (plugin → design export JSON)
-- [ ] Hi-fi DS/Scalar component swap in Figma
-- [ ] Richer React rendering from AST nodes (props, data bindings)
-- [ ] Sync/diff between design and code (bidirectional)
-- [ ] Unit tests for parser, generator, and CLI
-- [ ] Component library (`@scalar/ui`) implementation
+```
+output/
+├── src/
+│   ├── screens/
+│   │   └── generated/                    # *.generated.tsx — DO NOT EDIT generated blocks
+│   ├── components/
+│   │   └── generated/                    # *.generated.tsx — component scaffolds
+│   ├── types/
+│   │   └── generated/                    # models.generated.ts
+│   └── routes/
+│       └── generated.tsx                 # Route configuration
+```
+
+Files use `@scalar-generated-start/end` markers and checksums. Manual code below the markers is preserved across regenerations.
+
+## TODOs
+
+- [ ] Full DS/Scalar library swap (replace placeholders with real Figma component instances)
+- [ ] Bidirectional code-to-design diff
+- [ ] Richer AST-to-React renderer (props, data bindings, state variants)
+- [ ] Auth for non-local sync
+- [ ] Unit tests for all packages

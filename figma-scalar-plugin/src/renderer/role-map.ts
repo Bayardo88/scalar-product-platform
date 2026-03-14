@@ -1,0 +1,38 @@
+const ROLE_LABELS: Record<string, string> = {
+  "appShell": "App Shell",
+  "navigation.sidebar": "Sidebar",
+  "navigation.topbar": "Top Bar",
+  "navigation.tabs": "Tabs",
+  "content.main": "Main Content",
+  "content.toolbar": "Toolbar",
+  "content.section": "Section",
+  "collection.cards": "Card Grid",
+  "card.summary": "Summary Card",
+  "chart.analytics": "Analytics Chart",
+  "chart.bar": "Bar Chart",
+  "chart.line": "Line Chart",
+  "chart.pie": "Pie Chart",
+  "feed.activity": "Activity Feed",
+  "table.data": "Data Table",
+  "panel.details": "Details Panel",
+  "panel.filters": "Filters",
+  "form.container": "Form",
+  "form.login": "Login Form",
+  "form.settings": "Settings Form",
+  "overlay.modal": "Modal",
+  "button.primaryAction": "Primary Button",
+  "button.secondaryAction": "Secondary Button",
+  "input.text": "Text Input",
+  "input.password": "Password Input",
+  "input.search": "Search Input",
+  "input.select": "Select Input",
+  "text.heading": "Heading",
+  "text.body": "Body Text",
+  "text.label": "Label",
+  "alert.error": "Error Alert",
+  "alert.success": "Success Alert",
+};
+
+export function getRoleLabel(role: string): string {
+  return ROLE_LABELS[role] || role.split(".").pop() || role;
+}
