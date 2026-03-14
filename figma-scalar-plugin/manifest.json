@@ -1,11 +1,26 @@
 {
   "name": "Scalar Product Generator",
-  "id": "1614723945481040067",
+  "id": "1614726182994393292",
   "api": "1.0.0",
   "editorType": ["figma"],
+
   "main": "dist/code.js",
   "ui": "ui.html",
+
+  "documentAccess": "dynamic-page",
+
   "networkAccess": {
-    "allowedDomains": ["none"]
-  }
+    "allowedDomains": [
+      "https://api.openai.com"
+    ]
+  },
+
+  "enableProposedApi": false,
+
+  "menu": [
+    {
+      "name": "Generate Product Layout",
+      "command": "generate"
+    }
+  ]
 }
