@@ -12,7 +12,7 @@ const buildOptions = {
   mainFields: ["main", "module"],
   sourcemap: false,
   minify: process.argv.includes("--minify"),
-  external: [],
+  external: ["openai", "openai/helpers/zod", "dotenv"],
   logLevel: "info",
 };
 

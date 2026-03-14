@@ -1,4 +1,4 @@
-import { parsePromptToBrief, generateAstFromBrief } from "scalar-product-generator-core";
+import { parsePromptUnified, generateAstFromBrief } from "scalar-product-generator-core";
 import { renderAST } from "./renderer/render-ast";
 import { exportDesignAST } from "./exporter/export-ast";
 import { swapToHiFi } from "./hifi/swap-engine";
@@ -14,7 +14,7 @@ figma.ui.onmessage = async (msg: {
   try {
     if (msg.type === "generate" && msg.prompt) {
       figma.ui.postMessage({ type: "status", message: "Parsing prompt..." });
-      const brief = parsePromptToBrief(msg.prompt);
+      const brief = await parsePromptUnified(msg.prompt);
 
       figma.ui.postMessage({ type: "status", message: "Generating AST..." });
       const ast = generateAstFromBrief(brief);
