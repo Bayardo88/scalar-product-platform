@@ -1,0 +1,1 @@
+Create a project management SaaS with dashboard, projects, tasks, analytics and settings

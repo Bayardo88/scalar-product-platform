@@ -1,0 +1,243 @@
+{
+  "version": "1.0",
+  "meta": {
+    "appName": "Project Manager",
+    "designSystem": "DS/Scalar",
+    "mode": "lowfi",
+    "generatedAt": "2026-03-14T00:00:00.000Z"
+  },
+  "routes": [
+    { "id": "route_1", "path": "/login", "screenId": "screen_1" },
+    { "id": "route_2", "path": "/dashboard", "screenId": "screen_2", "layout": "appShell" },
+    { "id": "route_3", "path": "/projects", "screenId": "screen_3", "layout": "appShell" },
+    { "id": "route_4", "path": "/projects/:id", "screenId": "screen_4", "layout": "appShell" },
+    { "id": "route_5", "path": "/tasks", "screenId": "screen_5", "layout": "appShell" },
+    { "id": "route_6", "path": "/tasks/:id", "screenId": "screen_6", "layout": "appShell" },
+    { "id": "route_7", "path": "/analytics", "screenId": "screen_7", "layout": "appShell" },
+    { "id": "route_8", "path": "/settings", "screenId": "screen_8", "layout": "appShell" }
+  ],
+  "screens": [
+    { "id": "screen_1", "name": "Login", "rootNodeId": "node_1" },
+    { "id": "screen_2", "name": "Dashboard", "rootNodeId": "node_5" },
+    { "id": "screen_3", "name": "Projects List", "rootNodeId": "node_13" },
+    { "id": "screen_4", "name": "Project Detail", "rootNodeId": "node_21" },
+    { "id": "screen_5", "name": "Tasks List", "rootNodeId": "node_29" },
+    { "id": "screen_6", "name": "Task Detail", "rootNodeId": "node_37" },
+    { "id": "screen_7", "name": "Analytics", "rootNodeId": "node_45" },
+    { "id": "screen_8", "name": "Settings", "rootNodeId": "node_53" }
+  ],
+  "nodes": [
+    {
+      "id": "node_1",
+      "type": "Region",
+      "role": "content.main",
+      "name": "Login Screen",
+      "layout": { "display": "stack", "direction": "vertical", "gap": 16, "padding": { "top": 64, "right": 64, "bottom": 64, "left": 64 } },
+      "children": [
+        { "id": "node_2", "type": "Text", "role": "text.heading", "name": "Login" },
+        {
+          "id": "node_3", "type": "Form", "role": "form.login", "name": "Login Form",
+          "children": [
+            { "id": "node_3a", "type": "ComponentInstance", "role": "input.text", "name": "Email", "props": { "placeholder": "Email address" } },
+            { "id": "node_3b", "type": "ComponentInstance", "role": "input.password", "name": "Password", "props": { "placeholder": "Password" } }
+          ]
+        },
+        { "id": "node_4", "type": "ComponentInstance", "role": "button.primaryAction", "name": "Sign In", "interactions": [{ "event": "click", "action": { "type": "navigate", "path": "/dashboard" } }] }
+      ]
+    },
+    {
+      "id": "node_5",
+      "type": "Region",
+      "role": "appShell",
+      "name": "App Shell",
+      "layout": { "display": "stack", "direction": "horizontal", "gap": 0 },
+      "children": [
+        { "id": "node_6", "type": "Region", "role": "navigation.sidebar", "name": "Sidebar", "layout": { "display": "stack", "direction": "vertical", "gap": 16 } },
+        { "id": "node_7", "type": "Region", "role": "navigation.topbar", "name": "Topbar", "layout": { "display": "stack", "direction": "horizontal", "gap": 12 } },
+        {
+          "id": "node_8",
+          "type": "Region",
+          "role": "content.main",
+          "name": "Main Content",
+          "layout": { "display": "stack", "direction": "vertical", "gap": 24 },
+          "children": [
+            { "id": "node_9", "type": "Text", "role": "text.heading", "name": "Dashboard" },
+            { "id": "node_10", "type": "Collection", "role": "collection.cards", "name": "KPI Cards", "layout": { "display": "grid", "columns": 4, "gap": 16 }, "props": { "itemRole": "card.summary", "kind": "grid" }, "data": { "bind": "kpis", "itemKey": "id" } },
+            { "id": "node_11", "type": "ComponentInstance", "role": "chart.analytics", "name": "Analytics Chart" },
+            { "id": "node_12", "type": "ComponentInstance", "role": "feed.activity", "name": "Activity Feed" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "node_13",
+      "type": "Region",
+      "role": "appShell",
+      "name": "App Shell",
+      "layout": { "display": "stack", "direction": "horizontal", "gap": 0 },
+      "children": [
+        { "id": "node_14", "type": "Region", "role": "navigation.sidebar", "name": "Sidebar" },
+        { "id": "node_15", "type": "Region", "role": "navigation.topbar", "name": "Topbar" },
+        {
+          "id": "node_16",
+          "type": "Region",
+          "role": "content.main",
+          "name": "Main Content",
+          "children": [
+            {
+              "id": "node_17", "type": "Region", "role": "content.toolbar", "name": "Projects Toolbar",
+              "layout": { "display": "stack", "direction": "horizontal", "gap": 12 },
+              "children": [
+                { "id": "node_18", "type": "Text", "role": "text.heading", "name": "Projects" },
+                { "id": "node_19", "type": "ComponentInstance", "role": "input.search", "name": "Search" },
+                { "id": "node_20", "type": "ComponentInstance", "role": "button.primaryAction", "name": "Create Project" }
+              ]
+            },
+            { "id": "node_20b", "type": "ComponentInstance", "role": "table.data", "name": "Projects Table", "data": { "bind": "projects", "itemKey": "id" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "node_21",
+      "type": "Region",
+      "role": "appShell",
+      "name": "App Shell",
+      "layout": { "display": "stack", "direction": "horizontal", "gap": 0 },
+      "children": [
+        { "id": "node_22", "type": "Region", "role": "navigation.sidebar", "name": "Sidebar" },
+        { "id": "node_23", "type": "Region", "role": "navigation.topbar", "name": "Topbar" },
+        {
+          "id": "node_24",
+          "type": "Region",
+          "role": "content.main",
+          "name": "Main Content",
+          "children": [
+            {
+              "id": "node_25", "type": "Region", "role": "content.section", "name": "Project Header",
+              "layout": { "display": "stack", "direction": "horizontal", "gap": 12 },
+              "children": [
+                { "id": "node_26", "type": "Text", "role": "text.heading", "name": "Project Detail" },
+                { "id": "node_27", "type": "ComponentInstance", "role": "button.secondaryAction", "name": "Back" },
+                { "id": "node_28", "type": "ComponentInstance", "role": "button.primaryAction", "name": "Edit" }
+              ]
+            },
+            { "id": "node_28b", "type": "ComponentInstance", "role": "panel.details", "name": "Project Details", "data": { "bind": "project" } },
+            { "id": "node_28c", "type": "Region", "role": "navigation.tabs", "name": "Project Tabs" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "node_29",
+      "type": "Region",
+      "role": "appShell",
+      "name": "App Shell",
+      "layout": { "display": "stack", "direction": "horizontal", "gap": 0 },
+      "children": [
+        { "id": "node_30", "type": "Region", "role": "navigation.sidebar", "name": "Sidebar" },
+        { "id": "node_31", "type": "Region", "role": "navigation.topbar", "name": "Topbar" },
+        {
+          "id": "node_32",
+          "type": "Region",
+          "role": "content.main",
+          "name": "Main Content",
+          "children": [
+            {
+              "id": "node_33", "type": "Region", "role": "content.toolbar", "name": "Tasks Toolbar",
+              "layout": { "display": "stack", "direction": "horizontal", "gap": 12 },
+              "children": [
+                { "id": "node_34", "type": "Text", "role": "text.heading", "name": "Tasks" },
+                { "id": "node_35", "type": "ComponentInstance", "role": "input.search", "name": "Search" },
+                { "id": "node_36", "type": "ComponentInstance", "role": "button.primaryAction", "name": "Create Task" }
+              ]
+            },
+            { "id": "node_36b", "type": "ComponentInstance", "role": "table.data", "name": "Tasks Table", "data": { "bind": "tasks", "itemKey": "id" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "node_37",
+      "type": "Region",
+      "role": "appShell",
+      "name": "App Shell",
+      "layout": { "display": "stack", "direction": "horizontal", "gap": 0 },
+      "children": [
+        { "id": "node_38", "type": "Region", "role": "navigation.sidebar", "name": "Sidebar" },
+        { "id": "node_39", "type": "Region", "role": "navigation.topbar", "name": "Topbar" },
+        {
+          "id": "node_40",
+          "type": "Region",
+          "role": "content.main",
+          "name": "Main Content",
+          "children": [
+            {
+              "id": "node_41", "type": "Region", "role": "content.section", "name": "Task Header",
+              "layout": { "display": "stack", "direction": "horizontal", "gap": 12 },
+              "children": [
+                { "id": "node_42", "type": "Text", "role": "text.heading", "name": "Task Detail" },
+                { "id": "node_43", "type": "ComponentInstance", "role": "button.secondaryAction", "name": "Back" },
+                { "id": "node_44", "type": "ComponentInstance", "role": "button.primaryAction", "name": "Edit" }
+              ]
+            },
+            { "id": "node_44b", "type": "ComponentInstance", "role": "panel.details", "name": "Task Details", "data": { "bind": "task" } },
+            { "id": "node_44c", "type": "Region", "role": "navigation.tabs", "name": "Task Tabs" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "node_45",
+      "type": "Region",
+      "role": "appShell",
+      "name": "App Shell",
+      "layout": { "display": "stack", "direction": "horizontal", "gap": 0 },
+      "children": [
+        { "id": "node_46", "type": "Region", "role": "navigation.sidebar", "name": "Sidebar" },
+        { "id": "node_47", "type": "Region", "role": "navigation.topbar", "name": "Topbar" },
+        {
+          "id": "node_48",
+          "type": "Region",
+          "role": "content.main",
+          "name": "Main Content",
+          "layout": { "display": "stack", "direction": "vertical", "gap": 24 },
+          "children": [
+            { "id": "node_49", "type": "Text", "role": "text.heading", "name": "Analytics" },
+            { "id": "node_50", "type": "ComponentInstance", "role": "chart.bar", "name": "Bar Chart" },
+            { "id": "node_51", "type": "ComponentInstance", "role": "chart.line", "name": "Line Chart" },
+            { "id": "node_52", "type": "ComponentInstance", "role": "chart.pie", "name": "Pie Chart" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "node_53",
+      "type": "Region",
+      "role": "appShell",
+      "name": "App Shell",
+      "layout": { "display": "stack", "direction": "horizontal", "gap": 0 },
+      "children": [
+        { "id": "node_54", "type": "Region", "role": "navigation.sidebar", "name": "Sidebar" },
+        { "id": "node_55", "type": "Region", "role": "navigation.topbar", "name": "Topbar" },
+        {
+          "id": "node_56",
+          "type": "Region",
+          "role": "content.main",
+          "name": "Main Content",
+          "children": [
+            {
+              "id": "node_57", "type": "Region", "role": "content.section", "name": "Settings Section",
+              "layout": { "display": "stack", "direction": "vertical", "gap": 16 },
+              "children": [
+                { "id": "node_58", "type": "Text", "role": "text.heading", "name": "Settings" },
+                { "id": "node_59", "type": "Form", "role": "form.settings", "name": "Settings Form" },
+                { "id": "node_60", "type": "ComponentInstance", "role": "button.primaryAction", "name": "Save Settings" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

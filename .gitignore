@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.js.map
+*.d.ts.map
+.DS_Store
+*.tsbuildinfo
+.env
+.env.*
+coverage/
+reports/
+src/screens/generated/
+src/types/generated/
+src/routes/generated.tsx
+*.generated.tsx
+*.generated.ts
+!registry/**

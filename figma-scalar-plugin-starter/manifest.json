@@ -1,0 +1,9 @@
+{
+  "name": "Scalar Product Generator",
+  "id": "scalar-product-generator",
+  "editorType": [
+    "figma"
+  ],
+  "main": "code.js",
+  "ui": "ui.html"
+}

@@ -1,0 +1,10 @@
+{
+  "name": "scalar-product-platform",
+  "private": true,
+  "workspaces": [
+    "scalar-product-generator-core",
+    "figma-scalar-plugin",
+    "scalar-design-sync",
+    "scalar-ui"
+  ]
+}

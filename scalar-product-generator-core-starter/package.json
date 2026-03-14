@@ -1,0 +1,17 @@
+{
+  "name": "scalar-product-generator-core",
+  "version": "0.1.0",
+  "description": "Shared core engine for Scalar Product Generator (AST, brief parser, patterns, generators).",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "ts-node": "^10.9.2",
+    "@types/node": "^22.0.0"
+  }
+}

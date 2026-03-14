@@ -1,0 +1,11 @@
+{
+  "name": "Scalar Product Generator",
+  "id": "scalar-product-generator",
+  "api": "1.0.0",
+  "editorType": ["figma"],
+  "main": "dist/code.js",
+  "ui": "ui.html",
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  }
+}

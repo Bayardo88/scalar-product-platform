@@ -1,0 +1,14 @@
+
+<html>
+<body>
+<h2>Scalar Product Generator</h2>
+<textarea id="prompt" style="width:100%;height:120px" placeholder="Create a SaaS dashboard"></textarea>
+<button id="generate">Generate</button>
+<script>
+document.getElementById("generate").onclick = () => {
+ const prompt = document.getElementById("prompt").value;
+ parent.postMessage({pluginMessage:{type:"generate",prompt}}, "*");
+}
+</script>
+</body>
+</html>

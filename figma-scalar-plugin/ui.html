@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 16px;
+      background: #fafafa;
+      color: #1a1a1a;
+      font-size: 13px;
+    }
+    h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .subtitle { font-size: 12px; color: #666; margin-bottom: 12px; }
+    label { font-weight: 500; font-size: 12px; display: block; margin-bottom: 4px; color: #444; }
+    textarea, input[type="text"] {
+      width: 100%; border: 1px solid #ddd; border-radius: 6px;
+      padding: 8px 10px; font-size: 13px; font-family: inherit;
+      outline: none; transition: border-color 0.15s;
+    }
+    textarea { height: 80px; resize: vertical; }
+    textarea:focus, input:focus { border-color: #5b5bf0; }
+    .section { margin-bottom: 12px; }
+    .actions { display: flex; gap: 6px; margin-top: 6px; }
+    button {
+      flex: 1; padding: 8px 12px; border: none; border-radius: 6px;
+      font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-primary { background: #5b5bf0; color: white; }
+    .btn-primary:hover { background: #4a4ad0; }
+    .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-secondary { background: #eee; color: #333; }
+    .btn-secondary:hover { background: #ddd; }
+    .btn-accent { background: #0d9488; color: white; }
+    .btn-accent:hover { background: #0a7a70; }
+    .btn-warn { background: #f59e0b; color: white; }
+    .btn-warn:hover { background: #d97706; }
+    .btn-small { flex: 0 0 auto; padding: 8px 10px; }
+    #status { margin-top: 8px; font-size: 12px; color: #666; min-height: 16px; }
+    .divider { border: none; border-top: 1px solid #e5e5e5; margin: 10px 0; }
+    .export-output { display: none; margin-top: 6px; position: relative; }
+    .export-output textarea {
+      height: 100px; font-family: 'SF Mono', Menlo, monospace; font-size: 11px;
+      background: #f5f5f5; color: #333;
+    }
+    .copy-btn {
+      position: absolute; top: 4px; right: 4px;
+      background: #5b5bf0; color: white; border: none; border-radius: 4px;
+      padding: 3px 7px; font-size: 10px; cursor: pointer;
+    }
+    .info {
+      margin-top: 10px; padding: 8px 10px; background: #f0f0ff;
+      border-radius: 6px; font-size: 11px; color: #444; line-height: 1.4;
+    }
+    .toggle-row {
+      display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; color: #666;
+    }
+    .toggle-row input[type="checkbox"] { margin: 0; }
+  </style>
+</head>
+<body>
+  <h2>Scalar Product Generator</h2>
+  <p class="subtitle">Generate, export, and upgrade design layouts</p>
+
+  <div class="section">
+    <label>Product Prompt</label>
+    <textarea id="prompt" placeholder="e.g. Create a project management SaaS with dashboard, projects, tasks, analytics and settings"></textarea>
+    <div class="actions">
+      <button id="generate" class="btn-primary">Generate Low-fi</button>
+      <button id="clear" class="btn-secondary btn-small">Clear</button>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <div class="section">
+    <label>Hi-fi Upgrade</label>
+    <div class="actions">
+      <button id="hifi-swap" class="btn-accent">Apply DS/Scalar Hi-fi</button>
+    </div>
+    <div class="toggle-row">
+      <input type="checkbox" id="use-library" checked />
+      <label for="use-library" style="margin:0;font-weight:400;font-size:11px">Swap to library components (when available)</label>
+    </div>
+    <div style="font-size:11px;color:#888;margin-top:2px;">Select specific frames or apply to entire page</div>
+  </div>
+
+  <hr class="divider" />
+
+  <div class="section">
+    <label>Export Design AST</label>
+    <input type="text" id="app-name" placeholder="App name (optional)" />
+    <div class="actions" style="margin-top:6px;">
+      <button id="export" class="btn-warn">Export JSON</button>
+    </div>
+    <div class="export-output" id="export-output">
+      <textarea id="export-json" readonly></textarea>
+      <button class="copy-btn" id="copy-json">Copy</button>
+    </div>
+  </div>
+
+  <div id="status"></div>
+
+  <div class="info">
+    <strong>Workflow:</strong> Generate low-fi &#8594; refine in Figma &#8594; apply hi-fi upgrade &#8594; export Design AST JSON &#8594; use <code>scalar-design-sync pull</code> to scaffold React code.
+  </div>
+
+  <script>
+    const promptEl = document.getElementById("prompt");
+    const generateEl = document.getElementById("generate");
+    const clearEl = document.getElementById("clear");
+    const hifiSwapEl = document.getElementById("hifi-swap");
+    const useLibraryEl = document.getElementById("use-library");
+    const exportEl = document.getElementById("export");
+    const appNameEl = document.getElementById("app-name");
+    const statusEl = document.getElementById("status");
+    const exportOutputEl = document.getElementById("export-output");
+    const exportJsonEl = document.getElementById("export-json");
+    const copyJsonEl = document.getElementById("copy-json");
+
+    function setStatus(msg) { statusEl.textContent = msg; }
+    function disableAll(v) {
+      generateEl.disabled = v;
+      hifiSwapEl.disabled = v;
+      exportEl.disabled = v;
+    }
+
+    generateEl.onclick = () => {
+      const prompt = promptEl.value.trim();
+      if (!prompt) { setStatus("Please enter a prompt."); return; }
+      setStatus("Generating...");
+      disableAll(true);
+      exportOutputEl.style.display = "none";
+      parent.postMessage({ pluginMessage: { type: "generate", prompt } }, "*");
+    };
+
+    clearEl.onclick = () => {
+      promptEl.value = "";
+      setStatus("");
+      exportOutputEl.style.display = "none";
+    };
+
+    hifiSwapEl.onclick = () => {
+      setStatus("Applying hi-fi styles...");
+      disableAll(true);
+      const useLibrary = useLibraryEl.checked;
+      parent.postMessage({ pluginMessage: { type: "hifi-swap", useLibrary } }, "*");
+    };
+
+    exportEl.onclick = () => {
+      setStatus("Exporting...");
+      disableAll(true);
+      const appName = appNameEl.value.trim() || undefined;
+      parent.postMessage({ pluginMessage: { type: "export", appName } }, "*");
+    };
+
+    copyJsonEl.onclick = () => {
+      exportJsonEl.select();
+      document.execCommand("copy");
+      copyJsonEl.textContent = "Copied!";
+      setTimeout(() => { copyJsonEl.textContent = "Copy"; }, 1500);
+    };
+
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+      disableAll(false);
+      if (msg.type === "status") setStatus(msg.message);
+      if (msg.type === "exported") {
+        setStatus(msg.message);
+        exportJsonEl.value = msg.ast;
+        exportOutputEl.style.display = "block";
+      }
+    };
+  </script>
+</body>
+</html>
